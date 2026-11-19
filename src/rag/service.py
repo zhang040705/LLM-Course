@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from src.llm.client import LLMClient
 from src.rag.citation import Citation, verify_and_extract_citations
@@ -246,3 +246,133 @@ class RAGService:
             invalid_citations_removed=cite_check.invalid_indices,
             context_stats=context_stats,
         )
+
+    def stream_answer(
+        self,
+        query: str,
+        history: Optional[List[Dict[str, Any]]] = None,
+    ) -> Iterator[Dict[str, Any]]:
+        """流式 RAG 问答生成器（供 FastAPI SSE 使用，复用核心检索/改写/拒答/引用逻辑）。
+
+        事件协议：
+        - {"type": "meta", "rewritten_query": str, "retrieved_count": int}
+        - {"type": "delta", "content": str}
+        - {"type": "done", "response": RAGResponse}
+        """
+        start = time.perf_counter()
+        clean_query = (query or "").strip()
+        if not clean_query:
+            resp = RAGResponse(
+                answer=self._with_disclaimer("请输入具体的医疗健康问题。"),
+                refused=True,
+                refusal_reason="empty_query",
+                disclaimer=self.disclaimer,
+                latency_ms=round((time.perf_counter() - start) * 1000.0, 2),
+            )
+            yield {"type": "done", "response": resp}
+            return
+
+        rewritten_query = ""
+        search_query = clean_query
+        if self.query_rewrite_enabled and history:
+            rewritten_query = self.query_rewriter.rewrite(clean_query, history=history)
+            if rewritten_query:
+                search_query = rewritten_query
+
+        raw_chunks = self.retriever.search(search_query, top_k=self.top_k)
+        max_score = max((c.score for c in raw_chunks), default=0.0)
+        yield {
+            "type": "meta",
+            "rewritten_query": rewritten_query,
+            "retrieved_count": len(raw_chunks),
+        }
+
+        if not raw_chunks or max_score < self.min_similarity_score:
+            resp = RAGResponse(
+                answer=self._with_disclaimer(DEFAULT_REFUSAL_TEXT),
+                citations=[],
+                retrieved_chunks=raw_chunks,
+                refused=True,
+                refusal_reason=f"low_similarity({max_score:.4f}<{self.min_similarity_score})",
+                disclaimer=self.disclaimer,
+                latency_ms=round((time.perf_counter() - start) * 1000.0, 2),
+                rewritten_query=rewritten_query,
+            )
+            yield {"type": "delta", "content": resp.answer}
+            yield {"type": "done", "response": resp}
+            return
+
+        if self.llm_client is None:
+            raise RuntimeError("LLMClient 未初始化，无法执行模型生成。")
+
+        filtered_chunks = [c for c in raw_chunks if c.score >= self.min_chunk_score]
+        if not filtered_chunks:
+            filtered_chunks = [raw_chunks[0]]
+
+        context_str, trimmed_history, context_stats = self.context_manager.build(
+            chunks=filtered_chunks,
+            history=history,
+            query=clean_query,
+            max_history_turns=self.max_history_turns,
+            disclaimer=self.disclaimer,
+        )
+        active_chunks = filtered_chunks[: max(1, context_stats.included_chunks)]
+
+        messages: List[Dict[str, str]] = [
+            {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(context=context_str)}
+        ]
+        messages.extend(trimmed_history)
+        messages.append({"role": "user", "content": clean_query})
+
+        collected: List[str] = []
+        prefix_buf = ""
+        prefix_checked = False
+        for piece in self.llm_client.stream_chat(messages):
+            collected.append(piece)
+            if not prefix_checked:
+                prefix_buf += piece
+                if len(prefix_buf) >= 10:
+                    prefix_checked = True
+                    emit = prefix_buf.removeprefix("[REFUSE]").lstrip()
+                    if emit:
+                        yield {"type": "delta", "content": emit}
+            else:
+                yield {"type": "delta", "content": piece}
+
+        if not prefix_checked and prefix_buf:
+            emit = prefix_buf.removeprefix("[REFUSE]").lstrip()
+            if emit:
+                yield {"type": "delta", "content": emit}
+
+        raw_text = "".join(collected).strip()
+        refused = False
+        refusal_reason = ""
+        if raw_text.startswith("[REFUSE]"):
+            refused = True
+            refusal_reason = "llm_refusal"
+            raw_text = raw_text.removeprefix("[REFUSE]").strip()
+
+        cite_check = verify_and_extract_citations(raw_text, active_chunks)
+        cleaned_answer = cite_check.cleaned_answer
+        citations = [] if refused else cite_check.citations
+
+        if not refused and self.require_citation and not citations:
+            refused = True
+            refusal_reason = "no_valid_citation"
+            cleaned_answer = DEFAULT_REFUSAL_TEXT
+            citations = []
+
+        resp = RAGResponse(
+            answer=self._with_disclaimer(cleaned_answer),
+            citations=citations,
+            retrieved_chunks=active_chunks,
+            refused=refused,
+            refusal_reason=refusal_reason,
+            disclaimer=self.disclaimer,
+            model=self.llm_client.model,
+            latency_ms=round((time.perf_counter() - start) * 1000.0, 2),
+            rewritten_query=rewritten_query,
+            invalid_citations_removed=cite_check.invalid_indices,
+            context_stats=context_stats,
+        )
+        yield {"type": "done", "response": resp}

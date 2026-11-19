@@ -60,9 +60,9 @@ rag:
   disclaimer: "【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗依据。如有身体不适，请及时前往正规医院就诊。"
 
 app:
-  framework: "gradio"          # gradio (MVP) | fastapi (V4)
+  framework: "fastapi"         # fastapi (V4) | gradio (MVP)
   host: "127.0.0.1"
-  port: 7860
+  port: 8000
 
 eval:
   results_dir: "results"

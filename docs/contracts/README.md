@@ -16,4 +16,4 @@
 | `retrieval.md` | `src/retrieval/` Embedder / Retriever 输入输出、分值范围与过滤约定 | `T03`, `T11`, `T12` | 已创建 |
 | `rag-service.md` | `src/rag/` 核心问答入参、引用映射结构、拒答状态语义 | `T05`, `T08`, `T10` | 已创建 |
 | `eval-schema.md` | 评测集 JSONL 格式与 `results/` 评测结果汇总格式 | `T02`, `T07` | 已更新 |
-| `web-api.md` | FastAPI 服务端 HTTP / SSE 流式接口与错误码定义 | `T15` | 待开发时创建 |
+| `web-api.md` | FastAPI 服务端 HTTP / SSE 流式接口与错误码定义 | `T15` | 已创建 |

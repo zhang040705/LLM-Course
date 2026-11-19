@@ -73,26 +73,31 @@ pytest -q
 
 ## 4. 全流程运行方式（随任务推进持续更新）
 
-> 当前已完成 **V1 Core（`T01`–`T10`）**，已支持多轮 Query 改写、`>32k` 长上下文预算管理、引用真实性校验与阈值拒答调优：
+> 当前已完成 **V2 Retrieval（`T01`–`T12`）** 与 **V4 `T15`（FastAPI 服务端与简洁前端）**（V3 本地微调待后续算力阶段推进）：
 
-1. **数据处理与建库**（`T02`–`T03`，已就绪）：
+1. **数据处理与建库**（`T02`–`T03` / `T12`，已就绪）：
    ```bash
    python scripts/prepare_data.py
    # 常用参数: --kb-size 5000 --reset-index --skip-index
    ```
-2. **启动 Web Demo**（`T06`，已就绪）：
+2. **启动 Web Demo（默认 FastAPI + 简洁前端，兼容 Gradio）**（`T06` / `T15`，已就绪）：
    ```bash
-   python scripts/run_demo.py
+   python scripts/run_demo.py                 # 默认 FastAPI: http://127.0.0.1:8000 (API 文档 /docs)
+   python scripts/run_demo.py --framework gradio --port 7860
    ```
-3. **自动化评测**（`T07` / `T10`，已就绪）：
+3. **Embedding 三路对比实验**（`T11`，已就绪）：
    ```bash
-   python scripts/eval_rag.py --version v1-core --in-domain-limit 30 --ood-limit 20 --output results/v1_core.json
+   python scripts/compare_embeddings.py
    ```
-4. **长上下文压测**（`T09`，已就绪）：
+4. **自动化评测**（`T07` / `T10` / `T12`，已就绪）：
+   ```bash
+   python scripts/eval_rag.py --version v2-retrieval --in-domain-limit 30 --ood-limit 20 --output results/v2_retrieval.json
+   ```
+5. **长上下文压测**（`T09`，已就绪）：
    ```bash
    python scripts/test_long_context.py --mode both
    ```
-5. **LoRA 微调**（`T14`）：`python scripts/train_lora.py`
+6. **LoRA 微调**（`T14`）：`python scripts/train_lora.py`
 
 ### 4.1 阶段实验指标对比（30 条领域内 + 20 条 OOD）
 
