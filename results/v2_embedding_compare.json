@@ -1,0 +1,44 @@
+{
+  "timestamp_utc": "2026-11-19T06:10:11.396815+00:00",
+  "kb_limit": 300,
+  "query_limit": 30,
+  "ood_limit": 20,
+  "results": [
+    {
+      "name": "local/bge-small-zh-v1.5",
+      "dimension": 512,
+      "index_docs": 300,
+      "index_time_sec": 3.46,
+      "avg_query_latency_ms": 2.23,
+      "in_domain_top1_mean": 0.6602,
+      "in_domain_top1_min": 0.5201,
+      "ood_top1_mean": 0.427,
+      "ood_top1_max": 0.5461,
+      "domain_ood_margin": 0.2332
+    },
+    {
+      "name": "local/bge-base-zh-v1.5",
+      "dimension": 768,
+      "index_docs": 300,
+      "index_time_sec": 15.71,
+      "avg_query_latency_ms": 10.94,
+      "in_domain_top1_mean": 0.6171,
+      "in_domain_top1_min": 0.4669,
+      "ood_top1_mean": 0.3122,
+      "ood_top1_max": 0.4319,
+      "domain_ood_margin": 0.3048
+    },
+    {
+      "name": "cloud/dashscope-text-embedding-v3",
+      "dimension": 1024,
+      "index_docs": 300,
+      "index_time_sec": 13.29,
+      "avg_query_latency_ms": 178.6,
+      "in_domain_top1_mean": 0.6614,
+      "in_domain_top1_min": 0.5406,
+      "ood_top1_mean": 0.4474,
+      "ood_top1_max": 0.5617,
+      "domain_ood_margin": 0.214
+    }
+  ]
+}

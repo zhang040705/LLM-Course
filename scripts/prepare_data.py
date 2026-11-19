@@ -18,7 +18,7 @@ from src.ingestion import (
     read_jsonl,
     split_and_save_datasets,
 )
-from src.retrieval import ChromaVectorStore, create_embedder
+from src.retrieval import BM25Retriever, ChromaVectorStore, create_embedder
 
 
 def main() -> None:
@@ -77,17 +77,23 @@ def main() -> None:
     )
     print(f"    生成分块总计: {len(chunks)} 个")
 
-    print("[4/4] 初始化本地 Embedding 并写入 Chroma 向量库...")
+    print("[4/4] 初始化本地 Embedding 并写入 Chroma 向量库 + BM25 稀疏索引...")
+    persist_dir = PROJECT_ROOT / ret_cfg.get("vectorstore_dir", "data/vectorstore")
     embedder = create_embedder(cfg)
     store = ChromaVectorStore(
-        persist_dir=PROJECT_ROOT / ret_cfg.get("vectorstore_dir", "data/vectorstore"),
+        persist_dir=persist_dir,
         collection_name=ret_cfg.get("collection_name", "cmedqa_kb"),
         embedder=embedder,
     )
     if args.reset_index:
         store.reset()
     written = store.add_chunks(chunks, batch_size=128)
-    print(f"[完成] 本次写入 {written} 个分块，集合当前总分块数: {store.count()}")
+
+    bm25 = BM25Retriever()
+    bm25_count = bm25.build_from_chunks(chunks)
+    bm25_path = persist_dir / ret_cfg.get("bm25_index_file", "bm25_index.json")
+    bm25.save(bm25_path)
+    print(f"[完成] 向量库写入 {written} 个分块（总计 {store.count()}），BM25 索引写入 {bm25_count} 个分块至 {bm25_path}")
 
 
 if __name__ == "__main__":

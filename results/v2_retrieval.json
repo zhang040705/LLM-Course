@@ -1,0 +1,139 @@
+{
+  "version": "v2-retrieval",
+  "timestamp_utc": "2026-11-19T06:20:02.976382+00:00",
+  "metrics": {
+    "in_domain_count": 30,
+    "ood_count": 20,
+    "in_domain_answer_rate": 0.7667,
+    "accuracy_char_f1": 0.2228,
+    "citation_precision": 1.0,
+    "citation_recall": 0.95,
+    "citation_f1": 0.9689,
+    "ood_refusal_accuracy": 1.0,
+    "ood_pre_refusal_rate": 0.95,
+    "hallucination_rate": 0.0,
+    "invalid_citations_removed_total": 0,
+    "avg_latency_ms": 1493.53,
+    "avg_total_tokens": 945.1
+  },
+  "samples": [
+    {
+      "type": "in_domain",
+      "eval_id": "med_0001",
+      "question": "半年的声音嘶哑就医吃西药中药也没有好转",
+      "refused": true,
+      "refusal_reason": "llm_refusal",
+      "char_f1": 0.0,
+      "citation_f1": 1.0,
+      "answer_preview": "抱歉，当前参考医疗资料中未检索到关于\"半年声音嘶哑、中西药治疗无好转\"的充分医疗依据（现有资料仅涉及声带水肿、声带麻痹、声带闭合不佳及慢性咽炎等零散内容，且未涵盖长期声嘶经久不愈的评估与处理），建议您到耳鼻喉科就诊，由专业医生进行喉镜等面对面检查以明确病因。\n\n【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗"
+    },
+    {
+      "type": "in_domain",
+      "eval_id": "med_0002",
+      "question": "右手，手腕，手背肿胀现在半年多，只有右手，吃着甲泼尼龙片，偶尔会消肿，在开封淮河医院，中西医结合门诊，看的但是现在右手手腕手背还是肿…",
+      "refused": false,
+      "refusal_reason": "",
+      "char_f1": 0.2148,
+      "citation_f1": 1.0,
+      "answer_preview": "根据现有资料，无法对您右手手腕、手背长期肿胀的具体病因或甲泼尼龙治疗效果作出判断。手部肿胀可能与心脏、肝脏、肺、肾脏相关，建议到医院详细检查[1]；肢体肿胀也可能与心源性或肾源性水肿有关，需查明原因后针对性治疗[2]。手指关节肿痛持续一年时，可考虑风湿原因并检查风湿全套[4]。您的情况已持续半年多且用药后仍肿，资料不足"
+    },
+    {
+      "type": "in_domain",
+      "eval_id": "med_0003",
+      "question": "我天生缺脚趾左脚个，右脚两个，我家是男孩和我一样的情况想再要一个孩子，想和正常孩子一样，没有缺陷",
+      "refused": true,
+      "refusal_reason": "llm_refusal",
+      "char_f1": 0.0,
+      "citation_f1": 1.0,
+      "answer_preview": "抱歉，当前知识库中未检索到足够的相关医疗依据，建议您咨询专业医生。\n\n【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗依据。如有身体不适，请及时前往正规医院就诊。"
+    },
+    {
+      "type": "in_domain",
+      "eval_id": "med_0004",
+      "question": "怀孕8个月胎位不正做四维彩超看性别准确吗",
+      "refused": true,
+      "refusal_reason": "llm_refusal",
+      "char_f1": 0.0,
+      "citation_f1": 1.0,
+      "answer_preview": "抱歉，当前知识库中未检索到足够的相关医疗依据来回答“怀孕8个月胎位不正时做四维彩超判断性别是否准确”这一问题。现有资料仅提及胎位变化可能影响B超检查的准确性[4]，以及非医学需要的胎儿性别鉴定在我国不被允许[3]，但未涉及四维彩超在胎位不正情况下判断性别的准确性，建议您咨询专业医生。\n\n【医疗免责声明】本系统回答仅供健"
+    },
+    {
+      "type": "in_domain",
+      "eval_id": "med_0005",
+      "question": "我这个人的个子不高，以前没结婚的时候体重都是在100斤左右的，由于怀孕后不经常运动而且吃的比较多，现在已经到150斤左右了，生完小孩后希望回到以前的身材，但是也不想做运动，听说可以喝瘦身咖啡。",
+      "refused": false,
+      "refusal_reason": "",
+      "char_f1": 0.2969,
+      "citation_f1": 1.0,
+      "answer_preview": "产后体重从约100斤增至约150斤，想恢复身材但不想运动，并考虑瘦身咖啡——就现有资料而言，可提供的依据如下：\n\n- 减肥仍建议以运动方式为主，相对更安全；可利用等车、候车等碎片时间做简单小体操（如单脚向内交叉轻压大腿内侧、维持10秒后换腿，重心保持居中，必要时靠墙或柱子保持平衡）[2]。\n- 饮食方面：不可绝食，绝食"
+    },
+    {
+      "type": "ood",
+      "eval_id": "ood_0050",
+      "question": "考研数学一和数学二在考试范围上有什么区别？（补充测试场景 #2）",
+      "refused": true,
+      "refusal_reason": "low_similarity(0.0000<0.2)"
+    },
+    {
+      "type": "ood",
+      "eval_id": "ood_0064",
+      "question": "2026年美联储降息对黄金期货价格通常有什么影响？（补充测试场景 #3）",
+      "refused": true,
+      "refusal_reason": "low_similarity(0.0003<0.2)"
+    },
+    {
+      "type": "ood",
+      "eval_id": "ood_0024",
+      "question": "2026年美联储降息对黄金期货价格通常有什么影响？（补充测试场景 #1）",
+      "refused": true,
+      "refusal_reason": "low_similarity(0.0002<0.2)"
+    }
+  ],
+  "multiturn_rewrite": {
+    "followup_cases": 4,
+    "avg_raw_top1_score": 0.4044,
+    "avg_rewritten_top1_score": 0.8493,
+    "avg_score_gain": 0.445,
+    "improved_count": 3,
+    "topic_switch_ood_refused": true,
+    "topic_switch_rewritten": "Python 中如何使用 asyncio 实现高并发请求？",
+    "cases": [
+      {
+        "id": "mt_01",
+        "followup": "那饮食上具体注意什么，能不能吃药？",
+        "rewritten_query": "怀孕25周着凉拉肚子，饮食上具体注意什么，能不能吃药？",
+        "raw_top1_score": 0.2476,
+        "rewritten_top1_score": 0.9993,
+        "delta": 0.7517,
+        "refused": false
+      },
+      {
+        "id": "mt_02",
+        "followup": "这种情况一般多久能好，需要做哪些检查？",
+        "rewritten_query": "咽喉肿痛、咳嗽伴低烧的上呼吸道感染或急性咽炎一般多久能好，需要做哪些检查？",
+        "raw_top1_score": 0.7017,
+        "rewritten_top1_score": 0.4613,
+        "delta": -0.2404,
+        "refused": true
+      },
+      {
+        "id": "mt_03",
+        "followup": "平时作息和日常护理要注意哪些？",
+        "rewritten_query": "高血压患者平时作息和日常护理要注意哪些？",
+        "raw_top1_score": 0.1779,
+        "rewritten_top1_score": 0.9808,
+        "delta": 0.8029,
+        "refused": false
+      },
+      {
+        "id": "mt_04",
+        "followup": "喂养的时候应该怎么护理？",
+        "rewritten_query": "五个月大宝宝吐奶拉绿便时喂养应该怎么护理？",
+        "raw_top1_score": 0.4903,
+        "rewritten_top1_score": 0.956,
+        "delta": 0.4657,
+        "refused": false
+      }
+    ]
+  }
+}

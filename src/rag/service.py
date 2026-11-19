@@ -10,7 +10,7 @@ from src.llm.client import LLMClient
 from src.rag.citation import Citation, verify_and_extract_citations
 from src.rag.context_manager import ContextBudgetManager, ContextStats
 from src.rag.rewriter import QueryRewriter
-from src.retrieval import ChromaVectorStore, RetrievedChunk, create_embedder
+from src.retrieval import RetrievedChunk, create_retriever
 
 
 @dataclass
@@ -103,12 +103,7 @@ class RAGService:
         llm_cfg = config.get("llm", {})
 
         if retriever is None:
-            embedder = create_embedder(config)
-            retriever = ChromaVectorStore(
-                persist_dir=PROJECT_ROOT / ret_cfg.get("vectorstore_dir", "data/vectorstore"),
-                collection_name=ret_cfg.get("collection_name", "cmedqa_kb"),
-                embedder=embedder,
-            )
+            retriever = create_retriever(config)
 
         if llm_client is None:
             llm_client = LLMClient.from_config(config)
