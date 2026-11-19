@@ -12,10 +12,21 @@ from src.rag import RAGResponse, RAGService
 
 def format_citations_markdown(resp: RAGResponse) -> str:
     """将 RAGResponse 中的引用来源与运行状态格式化为 Markdown。"""
-    status_line = (
-        f"**状态**：{'触发拒答 (' + resp.refusal_reason + ')' if resp.refused else '正常作答'}  \n"
-        f"**耗时**：`{resp.latency_ms:.0f} ms` ｜ **Token**：`{resp.total_tokens}`"
-    )
+    meta_parts = [
+        f"**状态**：{'触发拒答 (' + resp.refusal_reason + ')' if resp.refused else '正常作答'}",
+        f"**耗时**：`{resp.latency_ms:.0f} ms` ｜ **Token**：`{resp.total_tokens}`",
+    ]
+    if resp.rewritten_query:
+        meta_parts.append(f"**改写检索词**：`{resp.rewritten_query}`")
+    if resp.context_stats is not None:
+        cs = resp.context_stats
+        meta_parts.append(
+            f"**上下文预算**：估算 `{cs.estimated_prompt_tokens}` / `{cs.max_context_tokens}` tokens"
+            + ("（已按预算裁剪）" if cs.truncated else "")
+        )
+    if resp.invalid_citations_removed:
+        meta_parts.append(f"**已过滤无效引用**：`{resp.invalid_citations_removed}`")
+    status_line = "  \n".join(meta_parts)
 
     if resp.citations:
         lines = [status_line, "", "### 引用来源详情", ""]
@@ -85,8 +96,9 @@ def build_gradio_app(
     def on_clear() -> Tuple[str, List[Dict[str, str]], str]:
         return "", [], "对话已清空，请在左侧输入新的医疗健康问题。"
 
-    with gr.Blocks(title="中文医疗领域 RAG 问答系统 (MVP)") as demo:
-        gr.Markdown("# 中文医疗领域特定 RAG 问答系统（V0 MVP）")
+    version = cfg.get("project", {}).get("version", "v1-core")
+    with gr.Blocks(title=f"中文医疗领域 RAG 问答系统 ({version})") as demo:
+        gr.Markdown(f"# 中文医疗领域特定 RAG 问答系统（{version}）")
         gr.Markdown(f"> {disclaimer}")
 
         with gr.Row():

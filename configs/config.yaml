@@ -4,7 +4,7 @@
 
 project:
   name: "medical-rag-qa"
-  version: "v0-baseline"
+  version: "v1-core"
   seed: 42
 
 data:
@@ -39,15 +39,17 @@ retrieval:
 llm:
   provider: "deepseek"         # deepseek | local
   model: "deepseek-chat"
-  max_context_tokens: 32768    # >32k 长上下文支持
+  max_context_tokens: 65536    # >32k 长上下文支持（64k 预算）
   max_output_tokens: 1536
   temperature: 0.2
-  timeout: 60
+  timeout: 120
 
 rag:
   max_history_turns: 6
-  query_rewrite_enabled: false # V1 开启多轮 Query 改写
-  min_similarity_score: 0.45   # 低于此阈值触发不确定性拒答
+  query_rewrite_enabled: true  # V1 开启多轮 Query 改写
+  min_similarity_score: 0.52   # 低于此阈值触发前置不确定性拒答
+  min_chunk_score: 0.50        # 过滤低相关性噪声检索片段（至少保留 Top-1）
+  require_citation: true       # 要求非拒答回答必须附带至少一条有效引用
   disclaimer: "【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗依据。如有身体不适，请及时前往正规医院就诊。"
 
 app:

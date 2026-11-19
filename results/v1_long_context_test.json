@@ -1,0 +1,34 @@
+{
+  "timestamp_utc": "2026-11-19T00:39:20.574570+00:00",
+  "mode": "both",
+  "offline": {
+    "passed": true,
+    "case_gt_32k": {
+      "estimated_prompt_tokens": 36531,
+      "included_chunks": 2,
+      "included_history_msgs": 380,
+      "truncated": false
+    },
+    "case_over_limit_truncation": {
+      "estimated_prompt_tokens": 63455,
+      "included_chunks": 2,
+      "dropped_history_msgs": 97,
+      "truncated": true,
+      "top1_preserved": true
+    }
+  },
+  "online": {
+    "passed": true,
+    "prompt_tokens_real": 35517,
+    "completion_tokens_real": 71,
+    "total_tokens_real": 35588,
+    "estimated_prompt_tokens": 60439,
+    "exceeds_32k": true,
+    "refused": false,
+    "hit_needle_code": true,
+    "hit_drug_name": true,
+    "citations_count": 1,
+    "latency_ms": 1401.12,
+    "answer_preview": "该患者青霉素皮试阳性，严禁使用阿莫西林、氨苄西林等青霉素类药物[1]。原因是青霉素皮试阳性提示对青霉素类药物过敏，使用后可能发生严重过敏反应[1]。替代方案需由主治医师评估[1]。专项核验编号为 MED-32K-2026[1]。\n\n【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗依据。如有身体不适，请及时前往正规医院就诊。"
+  }
+}

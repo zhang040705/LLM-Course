@@ -73,7 +73,7 @@ pytest -q
 
 ## 4. 全流程运行方式（随任务推进持续更新）
 
-> 当前已完成 **V0 MVP（`T01`–`T07`）**，所有核心脚本与基线评测已就绪：
+> 当前已完成 **V1 Core（`T01`–`T10`）**，已支持多轮 Query 改写、`>32k` 长上下文预算管理、引用真实性校验与阈值拒答调优：
 
 1. **数据处理与建库**（`T02`–`T03`，已就绪）：
    ```bash
@@ -84,9 +84,19 @@ pytest -q
    ```bash
    python scripts/run_demo.py
    ```
-3. **自动化评测**（`T07`，已就绪）：
+3. **自动化评测**（`T07` / `T10`，已就绪）：
    ```bash
-   python scripts/eval_rag.py --in-domain-limit 50 --ood-limit 30
+   python scripts/eval_rag.py --version v1-core --in-domain-limit 30 --ood-limit 20 --output results/v1_core.json
    ```
-4. **长上下文压测**（`T09`）：`python scripts/test_long_context.py`
+4. **长上下文压测**（`T09`，已就绪）：
+   ```bash
+   python scripts/test_long_context.py --mode both
+   ```
 5. **LoRA 微调**（`T14`）：`python scripts/train_lora.py`
+
+### 4.1 阶段实验指标对比（30 条领域内 + 20 条 OOD）
+
+| 版本 | 字符 F1 (`accuracy_char_f1`) | 引用 F1 (`citation_f1`) | OOD 拒答率 | OOD 前置拦截率 | 幻觉率 | 平均延迟 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `v0-baseline` | `0.1902` | `0.9633` | `100.0%` | `—` | `0.0%` | `1569.38 ms` |
+| `v1-core` | `0.2199` | `0.9367` | `100.0%` | `75.0%` | `0.0%` | `1342.16 ms` |
