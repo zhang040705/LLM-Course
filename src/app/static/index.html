@@ -3,336 +3,76 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>中文医疗领域 RAG 问答系统</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: #f5f7fa;
-      color: #1f2937;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      background: #ffffff;
-      border-bottom: 1px solid #e5e7eb;
-      padding: 12px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    header h1 { font-size: 16px; font-weight: 600; }
-    .badge {
-      font-size: 12px;
-      background: #eef2ff;
-      color: #3730a3;
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-    .disclaimer {
-      background: #fffbeb;
-      border-bottom: 1px solid #fde68a;
-      color: #92400e;
-      font-size: 12px;
-      padding: 8px 20px;
-    }
-    main {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 16px;
-      padding: 16px 20px;
-      overflow: hidden;
-    }
-    .panel {
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .messages {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .msg {
-      max-width: 85%;
-      padding: 10px 14px;
-      border-radius: 8px;
-      line-height: 1.6;
-      font-size: 14px;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .msg.user {
-      align-self: flex-end;
-      background: #2563eb;
-      color: #ffffff;
-    }
-    .msg.assistant {
-      align-self: flex-start;
-      background: #f3f4f6;
-      color: #111827;
-    }
-    .examples {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px 16px;
-      border-top: 1px solid #f3f4f6;
-    }
-    .examples button {
-      font-size: 12px;
-      background: #f9fafb;
-      border: 1px solid #d1d5db;
-      color: #374151;
-      padding: 4px 10px;
-      border-radius: 14px;
-      cursor: pointer;
-    }
-    .examples button:hover { background: #eef2ff; border-color: #93c5fd; }
-    .input-bar {
-      display: flex;
-      gap: 8px;
-      padding: 12px 16px;
-      border-top: 1px solid #e5e7eb;
-      background: #ffffff;
-    }
-    .input-bar textarea {
-      flex: 1;
-      resize: none;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 14px;
-      font-family: inherit;
-      height: 44px;
-    }
-    .input-bar button {
-      padding: 0 16px;
-      border-radius: 6px;
-      border: none;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    #sendBtn { background: #2563eb; color: #ffffff; }
-    #sendBtn:disabled { background: #93c5fd; cursor: not-allowed; }
-    #clearBtn { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
-    .side-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 14px;
-      font-weight: 600;
-    }
-    .side-body {
-      flex: 1;
-      padding: 14px 16px;
-      overflow-y: auto;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-    .meta-box {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 12px;
-      font-size: 12px;
-      color: #4b5563;
-    }
-    .cite-card {
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 10px;
-      background: #ffffff;
-    }
-    .cite-title {
-      font-weight: 600;
-      font-size: 12px;
-      color: #1d4ed8;
-      margin-bottom: 4px;
-    }
-    .cite-text { font-size: 12px; color: #374151; white-space: pre-wrap; }
-    @media (max-width: 900px) {
-      main { grid-template-columns: 1fr; overflow-y: auto; }
-    }
-  </style>
+  <title>中文医疗领域特定 RAG 问答系统 · 全息核磁切片台</title>
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <header>
-    <h1>中文医疗领域特定 RAG 问答系统</h1>
-    <span class="badge" id="versionBadge">loading...</span>
+  <header class="dicom-header">
+    <div class="header-left">
+      <span class="status-dot" id="statusDot"></span>
+      <h1>中文医疗领域特定 RAG 问答系统</h1>
+      <span class="mode-badge" id="versionBadge">LOADING...</span>
+    </div>
+    <div class="header-right">
+      <span id="fovText">FOV: 0 / 65,536 TOKENS</span>
+      <div class="fov-meter">
+        <div class="fov-fill" id="fovFill"></div>
+      </div>
+    </div>
   </header>
-  <div class="disclaimer" id="disclaimerBar">
+
+  <div class="disclaimer-bar" id="disclaimerBar">
     【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗依据。如有身体不适，请及时前往正规医院就诊。
   </div>
 
-  <main>
-    <section class="panel">
-      <div class="messages" id="messages"></div>
-      <div class="examples">
-        <button type="button" onclick="fillExample('怀孕25周昨晚着凉了，早上拉肚子怎么办？')">孕期着凉腹泻</button>
-        <button type="button" onclick="fillExample('饮食上需要注意什么？')">多轮追问：饮食注意</button>
-        <button type="button" onclick="fillExample('Python 中如何使用 asyncio 实现并发请求？')">域外拒答测试</button>
+  <main class="workbench">
+    <section class="report-cabin">
+      <div class="messages" id="messages">
+        <div class="empty-welcome" id="emptyWelcome">
+          <div class="welcome-tag">HOLOGRAPHIC MEDICAL LIGHTBOX // CMedQA2</div>
+          <h2>全息医疗检索与循证阅片台</h2>
+          <p>
+            系统结合稠密向量与 BM25 稀疏检索及 Cross-Encoder 重排，为您检索可靠医疗科普依据。
+            回答中的 <strong>[⊕n]</strong> 锚点可与右侧 3D 断层证据胶片实时激光联动；面对缺乏依据或域外问题将自动触发安全拒答。
+          </p>
+        </div>
       </div>
-      <div class="input-bar">
-        <textarea id="queryInput" placeholder="请输入医疗健康问题（Enter 发送，Shift+Enter 换行）"></textarea>
-        <button id="sendBtn" type="button">发送</button>
-        <button id="clearBtn" type="button">清空</button>
+
+      <div class="composer-area">
+        <div class="examples-row">
+          <button type="button" class="example-pill" data-query="怀孕25周昨晚着凉了，早上拉肚子怎么办？">孕期着凉腹泻</button>
+          <button type="button" class="example-pill" data-query="饮食上需要注意什么？">多轮追问：饮食注意</button>
+          <button type="button" class="example-pill" data-query="Python 中如何使用 asyncio 实现并发请求？">域外拒答测试</button>
+        </div>
+        <div class="input-bar">
+          <textarea id="queryInput" placeholder="输入医疗健康问题（Enter 发送，Shift+Enter 换行）"></textarea>
+          <button id="sendBtn" type="button">发送</button>
+          <button id="clearBtn" type="button">清空</button>
+        </div>
       </div>
     </section>
 
-    <aside class="panel">
-      <div class="side-header">引用溯源与运行状态</div>
-      <div class="side-body" id="sidePanel">
-        提问后将在此展示回答引用的原始医疗片段、相关性分数与改写检索词。
+    <aside class="lightbox-panel">
+      <canvas id="mriShaderCanvas"></canvas>
+      <div class="lightbox-hud">
+        <span>TOMOGRAPHIC EVIDENCE // Z-STACK</span>
+        <span class="hud-state" id="hudState">STANDING BY</span>
+      </div>
+      <div class="zstack-stage" id="zstackStage">
+        <div class="zstack-empty">
+          <div class="code-line">WAITING FOR SIGNAL // 0 SLICES</div>
+          <p>发起医疗问答后，召回证据将以 3D 断层胶片呈现于此，支持悬浮引用锚点激光联动。</p>
+        </div>
+      </div>
+      <div class="zstack-scrubber" id="zstackScrubber" hidden>
+        <span id="zAxisLabel">Z: 1/1</span>
+        <input id="zRange" type="range" min="0" max="0" value="0" />
       </div>
     </aside>
   </main>
 
-  <script>
-    const messagesEl = document.getElementById("messages");
-    const sidePanelEl = document.getElementById("sidePanel");
-    const queryInput = document.getElementById("queryInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    let chatHistory = [];
+  <svg id="laserOverlay" aria-hidden="true"></svg>
 
-    async function loadHealth() {
-      try {
-        const res = await fetch("/api/health");
-        const data = await res.json();
-        document.getElementById("versionBadge").textContent =
-          `${data.version} · ${data.retrieval_mode}${data.rerank_enabled ? "+rerank" : ""}`;
-        if (data.disclaimer) {
-          document.getElementById("disclaimerBar").textContent = data.disclaimer;
-        }
-      } catch (e) {
-        document.getElementById("versionBadge").textContent = "offline";
-      }
-    }
-
-    function appendMessage(role, text) {
-      const div = document.createElement("div");
-      div.className = `msg ${role}`;
-      div.textContent = text;
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-      return div;
-    }
-
-    function escapeHtml(str) {
-      return String(str || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
-
-    function renderSidePanel(resp) {
-      const statusText = resp.refused
-        ? `触发拒答 (${escapeHtml(resp.refusal_reason)})`
-        : "正常作答";
-      let html = `<div class="meta-box">
-        <div><strong>状态：</strong>${statusText}</div>
-        <div><strong>耗时：</strong>${Math.round(resp.latency_ms || 0)} ms ｜ <strong>检索数：</strong>${resp.retrieved_count ?? 0}</div>
-        ${resp.rewritten_query ? `<div><strong>改写检索词：</strong>${escapeHtml(resp.rewritten_query)}</div>` : ""}
-        ${resp.context_stats ? `<div><strong>上下文估算：</strong>${resp.context_stats.estimated_prompt_tokens} / ${resp.context_stats.max_context_tokens} tokens</div>` : ""}
-      </div>`;
-
-      if (resp.citations && resp.citations.length > 0) {
-        for (const c of resp.citations) {
-          html += `<div class="cite-card">
-            <div class="cite-title">[${c.index}] ${escapeHtml(c.doc_id)} · 分数 ${Number(c.score).toFixed(4)}</div>
-            <div class="cite-text">${escapeHtml(c.text)}</div>
-          </div>`;
-        }
-      } else {
-        html += `<div style="color:#6b7280;">本次回答未附带有效引用来源（可能已触发拒答）。</div>`;
-      }
-      sidePanelEl.innerHTML = html;
-    }
-
-    function fillExample(text) {
-      queryInput.value = text;
-      queryInput.focus();
-    }
-
-    async function sendQuery() {
-      const query = queryInput.value.trim();
-      if (!query) return;
-      queryInput.value = "";
-      sendBtn.disabled = true;
-
-      appendMessage("user", query);
-      const assistantDiv = appendMessage("assistant", "思考与检索中...");
-      let streamedText = "";
-
-      try {
-        const res = await fetch("/api/chat/stream", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query, history: chatHistory }),
-        });
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let buffer = "";
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() || "";
-
-          for (const part of parts) {
-            const line = part.trim();
-            if (!line.startsWith("data:")) continue;
-            const ev = JSON.parse(line.slice(5).trim());
-            if (ev.type === "delta") {
-              streamedText += ev.content;
-              assistantDiv.textContent = streamedText;
-              messagesEl.scrollTop = messagesEl.scrollHeight;
-            } else if (ev.type === "done") {
-              const resp = ev.response;
-              assistantDiv.textContent = resp.answer;
-              renderSidePanel(resp);
-              chatHistory.push({ role: "user", content: query });
-              chatHistory.push({ role: "assistant", content: resp.answer });
-            } else if (ev.type === "error") {
-              assistantDiv.textContent = `服务异常：${ev.message}`;
-            }
-          }
-        }
-      } catch (err) {
-        assistantDiv.textContent = `请求失败：${err}`;
-      } finally {
-        sendBtn.disabled = false;
-        queryInput.focus();
-      }
-    }
-
-    sendBtn.addEventListener("click", sendQuery);
-    queryInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendQuery();
-      }
-    });
-    clearBtn.addEventListener("click", () => {
-      chatHistory = [];
-      messagesEl.innerHTML = "";
-      sidePanelEl.textContent = "对话已清空，请在左侧输入新的医疗健康问题。";
-    });
-
-    loadHealth();
-  </script>
+  <script type="module" src="/static/app.js"></script>
 </body>
 </html>

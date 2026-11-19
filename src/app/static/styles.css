@@ -1,0 +1,710 @@
+:root {
+  --bg-void: #050911;
+  --bg-panel: #0a111e;
+  --bg-card: rgba(15, 23, 42, 0.78);
+  --border-subtle: rgba(148, 163, 184, 0.16);
+  --border-cyan: rgba(34, 211, 238, 0.5);
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --accent-cyan: #22d3ee;
+  --accent-emerald: #34d399;
+  --accent-amber: #f59e0b;
+  --accent-coral: #fb7185;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部极简 DICOM 遥测条 */
+.dicom-header {
+  height: 42px;
+  padding: 0 20px;
+  background: rgba(8, 14, 26, 0.92);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+  flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+.status-dot.is-scanning {
+  animation: pulse-dot 1s infinite ease-in-out;
+}
+
+.status-dot.is-refused {
+  background: var(--accent-amber);
+  box-shadow: 0 0 8px var(--accent-amber);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.dicom-header h1 {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mode-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-cyan);
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fov-meter {
+  width: 96px;
+  height: 3px;
+  background: rgba(148, 163, 184, 0.18);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fov-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-emerald));
+  transition: width 0.35s ease;
+}
+
+/* 单行常驻医疗安全警示条 */
+.disclaimer-bar {
+  padding: 6px 20px;
+  background: rgba(245, 158, 11, 0.06);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  font-size: 12px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+/* 双栏暗室工作台：左 62% 阅读区 + 右 38% 3D 胶片匣 */
+.workbench {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.62fr) minmax(330px, 1fr);
+}
+
+/* 左栏：纯净暗室报告阅读区 */
+.report-cabin {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-void);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  scroll-behavior: smooth;
+}
+
+.messages::-webkit-scrollbar,
+.slice-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages::-webkit-scrollbar-thumb,
+.slice-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.22);
+  border-radius: 3px;
+}
+
+.empty-welcome {
+  margin: auto 0;
+  padding: 24px 0;
+  max-width: 560px;
+  color: var(--text-secondary);
+}
+
+.empty-welcome .welcome-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--accent-cyan);
+  margin-bottom: 8px;
+}
+
+.empty-welcome h2 {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.empty-welcome p {
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+/* 用户消息组（含极简改写细行） */
+.turn-user-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.msg-user {
+  max-width: 78%;
+  padding: 10px 15px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #f8fafc;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.rewrite-hint {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--accent-cyan);
+  opacity: 0.88;
+  max-width: 82%;
+  text-align: right;
+}
+
+/* 临床报告式助手输出（非厚重气泡，大留白高可读） */
+.msg-assistant {
+  max-width: 92%;
+  padding: 2px 0 2px 16px;
+  border-left: 2px solid rgba(34, 211, 238, 0.55);
+  color: var(--text-primary);
+  font-size: 14.5px;
+  line-height: 1.78;
+  word-break: break-word;
+}
+
+.msg-assistant.is-refused {
+  border-left-color: rgba(245, 158, 11, 0.72);
+}
+
+.report-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.report-content {
+  white-space: pre-wrap;
+}
+
+.report-disclaimer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.16);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 可交互靶区引用锚点 [⊕1] */
+.cite-anchor {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 3px;
+  padding: 0 6px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  background: rgba(34, 211, 238, 0.1);
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  vertical-align: baseline;
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.15s;
+}
+
+.cite-anchor:hover,
+.cite-anchor.is-active {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.35);
+  transform: translateY(-1px);
+}
+
+/* 底部输入与快捷示例区 */
+.composer-area {
+  padding: 12px 28px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(7, 12, 22, 0.9);
+  flex-shrink: 0;
+}
+
+.examples-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.example-pill {
+  font-size: 12px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.65);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.example-pill:hover {
+  color: var(--accent-cyan);
+  border-color: rgba(34, 211, 238, 0.45);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.input-bar {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.input-bar textarea {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  resize: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(10, 17, 30, 0.92);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-bar textarea:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.14);
+}
+
+.input-bar button {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+#sendBtn {
+  background: linear-gradient(135deg, #0891b2, #0284c7);
+  color: #ffffff;
+}
+
+#sendBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#clearBtn {
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-secondary);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+#clearBtn:hover {
+  color: var(--text-primary);
+  border-color: rgba(148, 163, 184, 0.45);
+}
+
+/* 右栏：全息核磁切片台（唯一 3D + WebGL Shader 主视觉焦点） */
+.lightbox-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #040810;
+  overflow: hidden;
+}
+
+#mriShaderCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#mriShaderCanvas.webgl-fallback {
+  background: radial-gradient(circle at 50% 48%, rgba(34, 211, 238, 0.14), #040810 70%);
+}
+
+.lightbox-hud {
+  position: relative;
+  z-index: 2;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  background: linear-gradient(180deg, rgba(5, 9, 17, 0.78), rgba(5, 9, 17, 0.2));
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.hud-state {
+  color: var(--accent-cyan);
+}
+
+.hud-state.is-refused {
+  color: var(--accent-amber);
+}
+
+/* 3D Z-Stack 舞台 */
+.zstack-stage {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1100px;
+}
+
+.zstack-empty {
+  border: 1px dashed rgba(34, 211, 238, 0.25);
+  border-radius: 10px;
+  padding: 24px 20px;
+  text-align: center;
+  background: rgba(5, 9, 17, 0.45);
+  backdrop-filter: blur(6px);
+  max-width: 300px;
+}
+
+.zstack-empty .code-line {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-cyan);
+  margin-bottom: 6px;
+}
+
+.zstack-empty p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.zstack-deck {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 460px;
+  transform-style: preserve-3d;
+}
+
+/* 单张 3D 断层胶片 */
+.slice-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  margin-top: -130px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(9, 16, 29, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  transform-origin: center center;
+  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.3s ease,
+              border-color 0.25s ease,
+              box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.slice-card:not(.is-active):hover {
+  border-color: rgba(34, 211, 238, 0.45);
+}
+
+.slice-card.is-active {
+  border-color: rgba(34, 211, 238, 0.8);
+  background: rgba(9, 17, 32, 0.9);
+  box-shadow: 0 0 26px rgba(34, 211, 238, 0.2), 0 20px 44px rgba(0, 0, 0, 0.72);
+}
+
+.slice-card.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  animation: scan-sweep 2.2s ease-in-out 1;
+}
+
+@keyframes scan-sweep {
+  0% { transform: translateY(0); opacity: 0.9; }
+  100% { transform: translateY(240px); opacity: 0; }
+}
+
+.slice-dicom-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.slice-id {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.slice-conf {
+  color: var(--accent-emerald);
+}
+
+.slice-conf-bar {
+  height: 2px;
+  background: rgba(148, 163, 184, 0.16);
+  border-radius: 1px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.slice-conf-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-emerald));
+}
+
+.slice-body {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  max-height: 165px;
+  overflow-y: auto;
+}
+
+.slice-card:not(.is-active) .slice-body {
+  max-height: 44px;
+  overflow: hidden;
+  color: var(--text-secondary);
+}
+
+.slice-dicom-bottom {
+  margin-top: 10px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+/* 拒答状态：琥珀色 Artifact Interlock 卡片 + SNR 标尺 */
+.interlock-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 18px;
+  border-radius: 10px;
+  background: rgba(18, 12, 10, 0.86);
+  border: 1px solid rgba(245, 158, 11, 0.65);
+  box-shadow: 0 0 28px rgba(245, 158, 11, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.interlock-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-amber);
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.interlock-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fef3c7;
+  margin-bottom: 8px;
+}
+
+.interlock-desc {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #fde68a;
+  opacity: 0.88;
+  margin-bottom: 14px;
+}
+
+.snr-meter {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(251, 113, 133, 0.45) 0%,
+    rgba(245, 158, 11, 0.45) 20%,
+    rgba(52, 211, 153, 0.35) 100%
+  );
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  margin: 8px 0 6px;
+}
+
+.snr-threshold-line {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: #ffffff;
+}
+
+.snr-score-dot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-coral);
+  border: 2px solid #ffffff;
+  transform: translate(-50%, -50%);
+}
+
+.snr-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+/* 底部极简 Z 轴深度滑块 */
+.zstack-scrubber {
+  position: relative;
+  z-index: 2;
+  padding: 10px 20px 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(5, 9, 17, 0.65);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.zstack-scrubber[hidden] {
+  display: none;
+}
+
+.zstack-scrubber input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+}
+
+/* 全局跨屏激光锚定线层 */
+#laserOverlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 40;
+}
+
+@media (max-width: 960px) {
+  html, body {
+    overflow: auto;
+  }
+  .workbench {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(420px, auto) 420px;
+  }
+  .report-cabin {
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+}

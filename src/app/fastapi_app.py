@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterator, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.config import load_config
@@ -28,10 +29,12 @@ class ChatRequest(BaseModel):
 
 
 def _serialize_rag_response(resp: RAGResponse) -> Dict[str, Any]:
+    max_score = max((c.score for c in resp.retrieved_chunks), default=0.0)
     return {
         "answer": resp.answer,
         "citations": [asdict(c) for c in resp.citations],
         "retrieved_count": len(resp.retrieved_chunks),
+        "max_score": round(max_score, 4),
         "refused": resp.refused,
         "refusal_reason": resp.refusal_reason,
         "disclaimer": resp.disclaimer,
@@ -55,12 +58,14 @@ def create_fastapi_app(
     proj_cfg = cfg.get("project", {})
     ret_cfg = cfg.get("retrieval", {})
     rag_cfg = cfg.get("rag", {})
+    llm_cfg = cfg.get("llm", {})
 
     app = FastAPI(
         title="中文医疗领域 RAG 问答系统 API",
         version=str(proj_cfg.get("version", "v2-retrieval")),
         description="基于 CMedQA2 的中文医疗领域特定 RAG 问答服务（支持多轮改写、>32k 上下文、引用溯源与拒答）。",
     )
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     service_holder: Dict[str, Optional[RAGService]] = {"instance": rag_service}
 
@@ -80,6 +85,8 @@ def create_fastapi_app(
             "version": proj_cfg.get("version", "v2-retrieval"),
             "retrieval_mode": ret_cfg.get("mode", "hybrid"),
             "rerank_enabled": bool(ret_cfg.get("rerank_enabled", True)),
+            "max_context_tokens": int(llm_cfg.get("max_context_tokens", 65536)),
+            "min_similarity_score": float(rag_cfg.get("min_similarity_score", 0.20)),
             "disclaimer": rag_cfg.get("disclaimer", ""),
         }
 

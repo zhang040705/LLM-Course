@@ -55,11 +55,22 @@ class TestFastAPIApp(unittest.TestCase):
         self.assertEqual(r_idx.status_code, 200)
         self.assertIn("中文医疗领域特定 RAG 问答系统", r_idx.text)
 
+        for asset in (
+            "/static/styles.css",
+            "/static/mri_shader.js",
+            "/static/app.js",
+            "/static/assets/mri_slice_texture.png",
+        ):
+            r_asset = self.client.get(asset)
+            self.assertEqual(r_asset.status_code, 200, f"静态资源加载失败: {asset}")
+
         r_health = self.client.get("/api/health")
         self.assertEqual(r_health.status_code, 200)
         body = r_health.json()
         self.assertEqual(body["status"], "ok")
         self.assertIn("retrieval_mode", body)
+        self.assertIn("max_context_tokens", body)
+        self.assertIn("min_similarity_score", body)
 
     def test_rest_chat_and_ood_refusal(self) -> None:
         r_ok = self.client.post("/api/chat", json={"query": "孕期腹泻怎么办？", "history": []})
@@ -67,6 +78,7 @@ class TestFastAPIApp(unittest.TestCase):
         data = r_ok.json()
         self.assertFalse(data["refused"])
         self.assertEqual(len(data["citations"]), 1)
+        self.assertAlmostEqual(data["max_score"], 0.92, places=3)
         self.assertIn("医疗免责声明", data["answer"])
 
         r_ood = self.client.post("/api/chat", json={"query": "Python asyncio 怎么用？", "history": []})
