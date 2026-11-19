@@ -57,7 +57,8 @@ class TestFastAPIApp(unittest.TestCase):
 
         for asset in (
             "/static/styles.css",
-            "/static/mri_shader.js",
+            "/static/film_cartridge_3d.js",
+            "/static/vendor/three.module.min.js",
             "/static/app.js",
             "/static/assets/mri_slice_texture.png",
         ):

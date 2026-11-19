@@ -1,25 +1,25 @@
-import { MRIShaderCanvas } from "/static/mri_shader.js";
+import { FilmCartridge3D } from "/static/film_cartridge_3d.js";
 
+const heroTitleWrap = document.getElementById("heroTitleWrap");
+const composerDock = document.getElementById("composerDock");
 const messagesEl = document.getElementById("messages");
-const emptyWelcomeEl = document.getElementById("emptyWelcome");
 const queryInput = document.getElementById("queryInput");
 const sendBtn = document.getElementById("sendBtn");
 const clearBtn = document.getElementById("clearBtn");
+
 const statusDot = document.getElementById("statusDot");
 const versionBadge = document.getElementById("versionBadge");
 const fovText = document.getElementById("fovText");
-const fovFill = document.getElementById("fovFill");
 const disclaimerBar = document.getElementById("disclaimerBar");
 
 const hudState = document.getElementById("hudState");
-const zstackStage = document.getElementById("zstackStage");
-const zstackScrubber = document.getElementById("zstackScrubber");
-const zRange = document.getElementById("zRange");
-const zAxisLabel = document.getElementById("zAxisLabel");
+const filmPlaceholder = document.getElementById("filmPlaceholder");
+const filmTray = document.getElementById("filmTray");
+const filmLightbox = document.getElementById("filmLightbox");
 const laserOverlay = document.getElementById("laserOverlay");
 
-const shaderCanvas = document.getElementById("mriShaderCanvas");
-const shader = new MRIShaderCanvas(shaderCanvas, "/static/assets/mri_slice_texture.png");
+const cartridgeCanvas = document.getElementById("cartridgeCanvas");
+const cartridge = new FilmCartridge3D(cartridgeCanvas);
 
 let chatHistory = [];
 let maxContextTokens = 65536;
@@ -29,7 +29,6 @@ let turnCounter = 0;
 /** @type {Record<string, any>} */
 const turnResponses = {};
 let activeTurnId = null;
-let activeSliceIndex = null;
 let lockedAnchorEl = null;
 let hoveredAnchorEl = null;
 
@@ -41,6 +40,62 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+function runFlipTransition(mutateDomFn) {
+  const els = [heroTitleWrap, composerDock];
+  const firstRects = els.map((el) => el.getBoundingClientRect());
+  mutateDomFn();
+  const lastRects = els.map((el) => el.getBoundingClientRect());
+
+  els.forEach((el, idx) => {
+    const f = firstRects[idx];
+    const l = lastRects[idx];
+    if (!f.width || !l.width) return;
+
+    const dx = f.left - l.left;
+    const dy = f.top - l.top;
+    // 标题块保持等比例缩放，避免文字拉扁；输入栏保持水平位移动效
+    const scaleX = el === heroTitleWrap ? f.width / l.width : 1;
+    const scaleY = el === heroTitleWrap ? f.width / l.width : 1;
+
+    el.style.transition = "none";
+    el.style.transformOrigin = "top left";
+    el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scaleX}, ${scaleY})`;
+  });
+
+  void document.body.offsetHeight;
+
+  els.forEach((el) => {
+    el.style.transition = "transform 680ms cubic-bezier(0.22, 1, 0.36, 1)";
+    el.style.transform = "none";
+  });
+
+  setTimeout(() => {
+    els.forEach((el) => {
+      el.style.transition = "";
+      el.style.transform = "";
+      el.style.transformOrigin = "";
+    });
+  }, 720);
+}
+
+function transitionToActive() {
+  if (!document.body.classList.contains("is-landing")) return;
+  runFlipTransition(() => {
+    document.body.classList.remove("is-landing");
+    document.body.classList.add("is-active");
+  });
+  requestAnimationFrame(() => cartridge.resizeNow());
+  setTimeout(() => cartridge.resizeNow(), 360);
+}
+
+function transitionToLanding() {
+  if (document.body.classList.contains("is-landing")) return;
+  runFlipTransition(() => {
+    document.body.classList.remove("is-active");
+    document.body.classList.add("is-landing");
+  });
+}
+
 async function loadHealth() {
   try {
     const res = await fetch("/api/health");
@@ -48,8 +103,8 @@ async function loadHealth() {
     maxContextTokens = Number(data.max_context_tokens) || 65536;
     minSimilarityScore = Number(data.min_similarity_score) || 0.2;
     const modeLabel = `${data.retrieval_mode || "hybrid"}${data.rerank_enabled ? "+rerank" : ""}`;
-    versionBadge.textContent = `${data.version || "v2"} · ${modeLabel}`.toUpperCase();
-    fovText.textContent = `FOV: 0 / ${maxContextTokens.toLocaleString()} TOKENS`;
+    versionBadge.textContent = modeLabel.toUpperCase();
+    fovText.textContent = `FOV 0 / ${(maxContextTokens / 1000).toFixed(1)}K`;
     if (data.disclaimer) {
       disclaimerBar.textContent = data.disclaimer;
     }
@@ -60,9 +115,8 @@ async function loadHealth() {
 
 function updateFov(resp) {
   const est = resp?.context_stats?.estimated_prompt_tokens || resp?.total_tokens || 0;
-  const pct = Math.min(100, Math.round((est / maxContextTokens) * 100));
-  fovText.textContent = `FOV: ${est.toLocaleString()} / ${maxContextTokens.toLocaleString()} TOKENS`;
-  fovFill.style.width = `${pct}%`;
+  const estStr = est >= 1000 ? `${(est / 1000).toFixed(1)}K` : String(est);
+  fovText.textContent = `FOV ${estStr} / ${(maxContextTokens / 1000).toFixed(1)}K`;
 }
 
 function formatReportBody(answerText, turnId, disclaimer) {
@@ -74,9 +128,7 @@ function formatReportBody(answerText, turnId, disclaimer) {
   }
 
   let html = escapeHtml(mainText);
-  // 基础加粗渲染
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  // 将 [1] [2] 替换为交互式靶区锚点 [⊕1]
   html = html.replace(/\[(\d+)\]/g, (_, num) => {
     return `<button type="button" class="cite-anchor" data-turn="${turnId}" data-cite="${num}">[⊕${num}]</button>`;
   });
@@ -87,151 +139,119 @@ function formatReportBody(answerText, turnId, disclaimer) {
   return html;
 }
 
-function renderZStackForTurn(turnId, targetCitationIndex = null) {
+function selectFilmCard(citeIndex) {
+  const cards = Array.from(filmTray.querySelectorAll(".film-card"));
+  if (!cards.length) return;
+  let found = false;
+  cards.forEach((card) => {
+    const match = Number(card.dataset.sliceIndex) === Number(citeIndex);
+    card.classList.toggle("is-active", match);
+    if (match) {
+      found = true;
+      card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  });
+  filmTray.classList.toggle("has-active", found);
+}
+
+function renderFilmTrayForTurn(turnId, targetCitationIndex = null) {
   const resp = turnResponses[turnId];
   if (!resp) return;
   activeTurnId = turnId;
+  filmPlaceholder.style.display = "none";
+  filmTray.innerHTML = "";
+  filmTray.classList.remove("has-active");
 
   if (resp.refused) {
-    shader.setMode("refused", 0.0);
+    cartridge.setState("refused");
     statusDot.classList.remove("is-scanning");
     statusDot.classList.add("is-refused");
-    hudState.textContent = "ARTIFACT INTERLOCK";
+    hudState.textContent = "EXPOSURE REJECTED";
     hudState.classList.add("is-refused");
-    zstackScrubber.hidden = true;
 
     const maxScore = Number(resp.max_score ?? 0);
     const thPct = Math.min(95, Math.max(5, Math.round(minSimilarityScore * 100)));
     const scorePct = Math.min(98, Math.max(2, Math.round(maxScore * 100)));
 
-    zstackStage.innerHTML = `
-      <div class="interlock-card">
-        <div class="interlock-tag">[ARTIFACT INTERLOCK // 证据信噪比不足]</div>
-        <div class="interlock-title">安全护栏已阻断本次生成</div>
-        <div class="interlock-desc">
-          判定原因：<code>${escapeHtml(resp.refusal_reason || "low_similarity")}</code><br/>
-          系统拒绝在缺乏可靠医疗依据时进行推测性回答。
-        </div>
-        <div class="snr-meter">
-          <div class="snr-threshold-line" style="left: ${thPct}%;" title="安全阈值 ${minSimilarityScore}"></div>
-          <div class="snr-score-dot" style="left: ${scorePct}%;" title="当前峰值 ${maxScore.toFixed(4)}"></div>
-        </div>
-        <div class="snr-labels">
-          <span>当前峰值: ${maxScore.toFixed(4)}</span>
-          <span>安全线: ${minSimilarityScore.toFixed(2)}</span>
-        </div>
+    const card = document.createElement("div");
+    card.className = "film-card is-rejected";
+    card.style.setProperty("--tilt", "-0.6deg");
+    card.innerHTML = `
+      <div class="film-sprocket left"></div>
+      <div class="film-sprocket right"></div>
+      <div class="film-edge-top">
+        <span>CMED-70MM // OVEREXPOSED</span>
+        <span>EXPOSURE REJECTED</span>
+      </div>
+      <div class="rejected-title">无效曝光废片 · 安全护栏已阻断</div>
+      <div class="rejected-reason">
+        判定原因：<code>${escapeHtml(resp.refusal_reason || "low_similarity")}</code><br/>
+        当前知识库信噪比不足，系统拒绝在缺乏可靠医疗依据时推测作答。
+      </div>
+      <div class="snr-meter">
+        <div class="snr-threshold-line" style="left: ${thPct}%;" title="安全阈值 ${minSimilarityScore}"></div>
+        <div class="snr-score-dot" style="left: ${scorePct}%;" title="当前峰值 ${maxScore.toFixed(4)}"></div>
+      </div>
+      <div class="film-edge-bottom">
+        <span>PEAK ${maxScore.toFixed(4)}</span>
+        <span>THRESHOLD ${minSimilarityScore.toFixed(2)}</span>
       </div>
     `;
+    filmTray.appendChild(card);
     return;
   }
 
   const citations = resp.citations || [];
   if (citations.length === 0) {
-    shader.setMode("idle", 0.0);
-    hudState.textContent = "NO SLICES";
+    cartridge.setState("idle");
+    hudState.textContent = "0 FRAMES";
     hudState.classList.remove("is-refused");
-    zstackScrubber.hidden = true;
-    zstackStage.innerHTML = `
-      <div class="zstack-empty">
-        <div class="code-line">SLICE // 0</div>
-        <p>本次回答未附带可展示的断层引用切片。</p>
-      </div>
-    `;
+    filmPlaceholder.style.display = "block";
+    filmPlaceholder.textContent = "本次回答未附带可显影的参考胶片。";
     return;
   }
 
-  const topScore = Math.max(...citations.map((c) => Number(c.score) || 0));
-  shader.setMode("grounded", topScore);
+  cartridge.triggerEject(citations.length);
   statusDot.classList.remove("is-scanning", "is-refused");
   hudState.classList.remove("is-refused");
+  hudState.textContent = `EJECTED · ${citations.length} FRAMES`;
 
-  const resolvedTarget =
-    targetCitationIndex && citations.some((c) => c.index === targetCitationIndex)
-      ? targetCitationIndex
-      : citations[0].index;
-  activeSliceIndex = resolvedTarget;
-
-  const deck = document.createElement("div");
-  deck.className = "zstack-deck";
-
+  const tilts = ["-1.1deg", "0.9deg", "-0.6deg", "1.1deg", "-0.8deg"];
   citations.forEach((c, idx) => {
     const card = document.createElement("div");
-    card.className = "slice-card";
+    card.className = "film-card";
     card.dataset.sliceIndex = String(c.index);
-    card.dataset.pos = String(idx);
+    card.style.setProperty("--tilt", tilts[idx % tilts.length]);
+    card.style.setProperty("--eject-delay", `${idx * 140}ms`);
     card.innerHTML = `
-      <div class="slice-dicom-top">
-        <span class="slice-id">SLICE #${String(c.index).padStart(2, "0")} · ${escapeHtml(c.doc_id)}</span>
-        <span class="slice-conf">CONF ${Number(c.score).toFixed(4)}</span>
+      <div class="film-sprocket left"></div>
+      <div class="film-sprocket right"></div>
+      <div class="film-edge-top">
+        <span>CMED-70MM · FRAME ${String(c.index).padStart(2, "0")}A</span>
+        <span class="film-conf-badge">CONF ${Number(c.score).toFixed(4)}</span>
       </div>
-      <div class="slice-conf-bar">
-        <div class="slice-conf-fill" style="width: ${Math.min(100, Math.round(Number(c.score) * 100))}%"></div>
-      </div>
-      <div class="slice-body">${escapeHtml(c.text)}</div>
-      <div class="slice-dicom-bottom">
-        <span>SRC: ${escapeHtml(c.source || "cMedQA2")}</span>
-        <span>${escapeHtml(c.chunk_id)}</span>
+      <div class="film-body">${escapeHtml(c.text)}</div>
+      <div class="film-edge-bottom">
+        <span>DOC // ${escapeHtml(c.doc_id)}</span>
+        <span>ISO 400 · ${escapeHtml(c.source || "cMedQA2")}</span>
       </div>
     `;
     card.addEventListener("click", () => {
-      setActiveSlice(c.index);
+      const already = card.classList.contains("is-active");
+      if (already) {
+        card.classList.remove("is-active");
+        filmTray.classList.remove("has-active");
+      } else {
+        selectFilmCard(c.index);
+      }
+      requestAnimationFrame(drawLaserOverlay);
     });
-    deck.appendChild(card);
+    filmTray.appendChild(card);
   });
 
-  zstackStage.innerHTML = "";
-  zstackStage.appendChild(deck);
-
-  if (citations.length > 1) {
-    zstackScrubber.hidden = false;
-    zRange.min = "0";
-    zRange.max = String(citations.length - 1);
-    const activePos = citations.findIndex((c) => c.index === resolvedTarget);
-    zRange.value = String(Math.max(0, activePos));
-  } else {
-    zstackScrubber.hidden = true;
+  if (targetCitationIndex !== null) {
+    selectFilmCard(targetCitationIndex);
   }
-
-  applyZStackTransforms(resolvedTarget);
-}
-
-function applyZStackTransforms(targetCiteIndex) {
-  activeSliceIndex = targetCiteIndex;
-  const cards = Array.from(zstackStage.querySelectorAll(".slice-card"));
-  if (cards.length === 0) return;
-
-  let activePos = cards.findIndex((c) => Number(c.dataset.sliceIndex) === Number(targetCiteIndex));
-  if (activePos < 0) activePos = 0;
-
-  cards.forEach((card, pos) => {
-    const rel = pos - activePos;
-    const absRel = Math.abs(rel);
-    const isActive = rel === 0;
-    card.classList.toggle("is-active", isActive);
-    card.style.zIndex = String(30 - absRel);
-
-    if (isActive) {
-      card.style.transform = "rotateY(0deg) rotateX(0deg) translate3d(0px, 0px, 36px) scale(1.01)";
-      card.style.opacity = "1";
-    } else {
-      const tx = rel * 12;
-      const ty = rel * 68;
-      const tz = -absRel * 60;
-      card.style.transform = `rotateY(-10deg) rotateX(3deg) translate3d(${tx}px, ${ty}px, ${tz}px) scale(0.95)`;
-      card.style.opacity = String(Math.max(0.32, 0.72 - absRel * 0.16));
-    }
-  });
-
-  hudState.textContent = `SLICE ${String(activePos + 1).padStart(2, "0")} / ${String(cards.length).padStart(2, "0")}`;
-  if (!zstackScrubber.hidden) {
-    zRange.value = String(activePos);
-    zAxisLabel.textContent = `Z: ${activePos + 1}/${cards.length}`;
-  }
-}
-
-function setActiveSlice(citeIndex) {
-  applyZStackTransforms(citeIndex);
-  requestAnimationFrame(drawLaserOverlay);
 }
 
 function clearLaserOverlay() {
@@ -252,7 +272,7 @@ function drawLaserOverlay() {
     return;
   }
 
-  const targetCard = zstackStage.querySelector(`.slice-card[data-slice-index="${citeIndex}"]`);
+  const targetCard = filmTray.querySelector(`.film-card[data-slice-index="${citeIndex}"]`);
   if (!targetCard) {
     clearLaserOverlay();
     return;
@@ -263,35 +283,26 @@ function drawLaserOverlay() {
   const x1 = aRect.right + 4;
   const y1 = aRect.top + aRect.height / 2;
   const x2 = cRect.left + 2;
-  const y2 = cRect.top + Math.min(42, cRect.height / 2);
+  const y2 = cRect.top + Math.min(34, cRect.height / 2);
 
-  // 直角折线激光路径：沿右侧留白走廊垂直转折，尽量不遮挡正文阅读区
-  const panelRect = zstackStage.getBoundingClientRect();
-  const gutterX = Math.max(x1 + 14, Math.min(x2 - 14, panelRect.left - 12));
+  // 沿着两栏留白走廊折弯，不遮挡左栏文字
+  const lbRect = filmLightbox.getBoundingClientRect();
+  const gutterX = Math.max(x1 + 14, Math.min(x2 - 12, lbRect.left - 10));
   const d = `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${gutterX.toFixed(1)} ${y1.toFixed(1)} L ${gutterX.toFixed(1)} ${y2.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`;
 
   const resp = turnResponses[turnId];
   const citeObj = (resp?.citations || []).find((c) => c.index === citeIndex);
-  const confText = citeObj ? `CONF ${Number(citeObj.score).toFixed(4)}` : `SLICE #${citeIndex}`;
-  const labelX = Math.max(x1 + 10, gutterX - 88);
+  const confText = citeObj ? `CONF ${Number(citeObj.score).toFixed(4)}` : `FRAME #${citeIndex}`;
+  const labelX = Math.max(x1 + 10, gutterX - 84);
   const labelY = y2 - 10;
 
   laserOverlay.innerHTML = `
-    <defs>
-      <filter id="laserGlow" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="2.5" result="blur" />
-        <feMerge>
-          <feMergeNode in="blur" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
-    <path d="${d}" fill="none" stroke="rgba(34, 211, 238, 0.88)" stroke-width="1.5" filter="url(#laserGlow)" />
-    <circle cx="${x1}" cy="${y1}" r="3" fill="#22d3ee" />
-    <circle cx="${x2}" cy="${y2}" r="5" fill="none" stroke="#22d3ee" stroke-width="1.5" />
-    <circle cx="${x2}" cy="${y2}" r="2" fill="#34d399" />
-    <rect x="${labelX - 4}" y="${labelY - 11}" width="84" height="16" rx="3" fill="rgba(5,9,17,0.88)" stroke="rgba(34,211,238,0.45)" stroke-width="0.8" />
-    <text x="${labelX}" y="${labelY}" fill="#22d3ee" font-family="JetBrains Mono, monospace" font-size="10">${confText}</text>
+    <path d="${d}" fill="none" stroke="rgba(15, 118, 110, 0.72)" stroke-width="1.5" stroke-dasharray="4 3" />
+    <circle cx="${x1}" cy="${y1}" r="3" fill="#0f766e" />
+    <circle cx="${x2}" cy="${y2}" r="4.5" fill="none" stroke="#14b8a6" stroke-width="1.5" />
+    <circle cx="${x2}" cy="${y2}" r="2" fill="#0f766e" />
+    <rect x="${labelX - 5}" y="${labelY - 11}" width="84" height="16" rx="4" fill="rgba(255,255,255,0.92)" stroke="rgba(15,118,110,0.35)" stroke-width="0.8" />
+    <text x="${labelX}" y="${labelY}" fill="#0f766e" font-family="JetBrains Mono, monospace" font-size="10">${confText}</text>
   `;
 }
 
@@ -306,12 +317,11 @@ function handleAnchorEnter(anchor) {
   const turnId = anchor.dataset.turn;
   const citeIndex = Number(anchor.dataset.cite);
   if (turnId !== activeTurnId) {
-    renderZStackForTurn(turnId, citeIndex);
+    renderFilmTrayForTurn(turnId, citeIndex);
   } else {
-    setActiveSlice(citeIndex);
+    selectFilmCard(citeIndex);
   }
   updateAnchorActiveClasses();
-  // 等待 3D 过渡布局稳定后再次修正连线端点
   requestAnimationFrame(drawLaserOverlay);
   setTimeout(drawLaserOverlay, 180);
 }
@@ -337,7 +347,6 @@ function handleAnchorClick(anchor) {
   updateAnchorActiveClasses();
 }
 
-// 事件委托处理所有动态生成的小引用胶囊 [⊕n]
 messagesEl.addEventListener("mouseover", (e) => {
   const anchor = e.target.closest(".cite-anchor");
   if (anchor) handleAnchorEnter(anchor);
@@ -361,24 +370,15 @@ messagesEl.addEventListener("click", (e) => {
 });
 
 messagesEl.addEventListener("scroll", () => {
-  if (lockedAnchorEl || hoveredAnchorEl) {
-    requestAnimationFrame(drawLaserOverlay);
-  }
+  if (lockedAnchorEl || hoveredAnchorEl) requestAnimationFrame(drawLaserOverlay);
+});
+
+filmLightbox.addEventListener("scroll", () => {
+  if (lockedAnchorEl || hoveredAnchorEl) requestAnimationFrame(drawLaserOverlay);
 });
 
 window.addEventListener("resize", () => {
-  if (lockedAnchorEl || hoveredAnchorEl) {
-    requestAnimationFrame(drawLaserOverlay);
-  }
-});
-
-zRange.addEventListener("input", () => {
-  const resp = turnResponses[activeTurnId];
-  const citations = resp?.citations || [];
-  const idx = Number(zRange.value);
-  if (citations[idx]) {
-    setActiveSlice(citations[idx].index);
-  }
+  if (lockedAnchorEl || hoveredAnchorEl) requestAnimationFrame(drawLaserOverlay);
 });
 
 document.querySelectorAll(".example-pill").forEach((btn) => {
@@ -392,9 +392,7 @@ async function sendQuery() {
   const query = queryInput.value.trim();
   if (!query) return;
 
-  if (emptyWelcomeEl) {
-    emptyWelcomeEl.style.display = "none";
-  }
+  transitionToActive();
 
   lockedAnchorEl = null;
   hoveredAnchorEl = null;
@@ -417,20 +415,18 @@ async function sendQuery() {
   const reportEl = document.createElement("article");
   reportEl.className = "msg-assistant";
   reportEl.innerHTML = `
-    <div class="report-label">
-      <span>CLINICAL RAG REPORT // ${turnId.toUpperCase()}</span>
-    </div>
-    <div class="report-content">正在执行双路检索与断层切片分析...</div>
+    <div class="report-label">CLINICAL REPORT // ${turnId.toUpperCase()}</div>
+    <div class="report-content">正在检索医疗胶片库与精排显影...</div>
   `;
   const reportBodyEl = reportEl.querySelector(".report-content");
   messagesEl.appendChild(reportEl);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 
-  shader.setMode("scanning", 0.5);
+  cartridge.setState("scanning");
   statusDot.classList.remove("is-refused");
   statusDot.classList.add("is-scanning");
   hudState.classList.remove("is-refused");
-  hudState.textContent = "SCANNING K-SPACE";
+  hudState.textContent = "DEVELOPING...";
 
   let streamedText = "";
 
@@ -470,7 +466,7 @@ async function sendQuery() {
         } else if (ev.type === "delta") {
           streamedText += ev.content;
           reportBodyEl.textContent = streamedText;
-          shader.triggerPulse(0.28);
+          cartridge.triggerPulse();
           messagesEl.scrollTop = messagesEl.scrollHeight;
         } else if (ev.type === "done") {
           const resp = ev.response;
@@ -480,19 +476,19 @@ async function sendQuery() {
           }
           reportBodyEl.innerHTML = formatReportBody(resp.answer, turnId, resp.disclaimer);
           updateFov(resp);
-          renderZStackForTurn(turnId);
+          renderFilmTrayForTurn(turnId);
           chatHistory.push({ role: "user", content: query });
           chatHistory.push({ role: "assistant", content: resp.answer });
           messagesEl.scrollTop = messagesEl.scrollHeight;
         } else if (ev.type === "error") {
           reportBodyEl.textContent = `服务异常：${ev.message}`;
-          shader.setMode("refused", 0.0);
+          cartridge.setState("refused");
         }
       }
     }
   } catch (err) {
     reportBodyEl.textContent = `请求失败：${err}`;
-    shader.setMode("refused", 0.0);
+    cartridge.setState("refused");
     statusDot.classList.remove("is-scanning");
     statusDot.classList.add("is-refused");
   } finally {
@@ -513,28 +509,19 @@ clearBtn.addEventListener("click", () => {
   chatHistory = [];
   turnCounter = 0;
   activeTurnId = null;
-  activeSliceIndex = null;
   lockedAnchorEl = null;
   hoveredAnchorEl = null;
   clearLaserOverlay();
   messagesEl.innerHTML = "";
-  if (emptyWelcomeEl) {
-    emptyWelcomeEl.style.display = "block";
-    messagesEl.appendChild(emptyWelcomeEl);
-  }
-  shader.setMode("idle", 0.0);
+  filmTray.innerHTML = "";
+  filmPlaceholder.style.display = "block";
+  filmPlaceholder.textContent = "胶片暗盒待命中——提问后将从上方出片口吐出并显影循证胶片";
+  cartridge.setState("idle");
   statusDot.classList.remove("is-scanning", "is-refused");
   hudState.classList.remove("is-refused");
   hudState.textContent = "STANDING BY";
-  zstackScrubber.hidden = true;
-  zstackStage.innerHTML = `
-    <div class="zstack-empty">
-      <div class="code-line">WAITING FOR SIGNAL // 0 SLICES</div>
-      <p>发起医疗问答后，召回证据将以 3D 断层胶片呈现于此，支持悬浮引用锚点激光联动。</p>
-    </div>
-  `;
-  fovText.textContent = `FOV: 0 / ${maxContextTokens.toLocaleString()} TOKENS`;
-  fovFill.style.width = "0%";
+  fovText.textContent = `FOV 0 / ${(maxContextTokens / 1000).toFixed(1)}K`;
+  transitionToLanding();
 });
 
 loadHealth();

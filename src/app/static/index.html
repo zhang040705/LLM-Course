@@ -3,73 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>中文医疗领域特定 RAG 问答系统 · 全息核磁切片台</title>
+  <title>循证 · 阅片 — 中文医疗领域特定 RAG 问答系统</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
-<body>
-  <header class="dicom-header">
-    <div class="header-left">
-      <span class="status-dot" id="statusDot"></span>
-      <h1>中文医疗领域特定 RAG 问答系统</h1>
-      <span class="mode-badge" id="versionBadge">LOADING...</span>
-    </div>
-    <div class="header-right">
-      <span id="fovText">FOV: 0 / 65,536 TOKENS</span>
-      <div class="fov-meter">
-        <div class="fov-fill" id="fovFill"></div>
-      </div>
-    </div>
-  </header>
-
-  <div class="disclaimer-bar" id="disclaimerBar">
-    【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗依据。如有身体不适，请及时前往正规医院就诊。
-  </div>
-
-  <main class="workbench">
-    <section class="report-cabin">
-      <div class="messages" id="messages">
-        <div class="empty-welcome" id="emptyWelcome">
-          <div class="welcome-tag">HOLOGRAPHIC MEDICAL LIGHTBOX // CMedQA2</div>
-          <h2>全息医疗检索与循证阅片台</h2>
-          <p>
-            系统结合稠密向量与 BM25 稀疏检索及 Cross-Encoder 重排，为您检索可靠医疗科普依据。
-            回答中的 <strong>[⊕n]</strong> 锚点可与右侧 3D 断层证据胶片实时激光联动；面对缺乏依据或域外问题将自动触发安全拒答。
-          </p>
+<body class="is-landing">
+  <main class="workspace-grid">
+    <!-- 左栏：标题（开屏居中 -> 对话左上角） + 无框对话流 + 悬浮胶囊输入框 -->
+    <section class="left-column">
+      <header class="hero-brand" id="heroBrand">
+        <div class="hero-title-wrap" id="heroTitleWrap">
+          <div class="hero-kicker" id="heroKicker">CMEDQA-2026 // 70MM DIAGNOSTIC ARCHIVE</div>
+          <h1 class="hero-title">
+            <span class="t-ink">循证</span><span class="t-dot">·</span><span class="t-teal">阅片</span>
+          </h1>
+          <p class="hero-subtitle">中文医疗领域特定 RAG 问答系统</p>
         </div>
-      </div>
 
-      <div class="composer-area">
+        <div class="telemetry-chip" id="telemetryChip">
+          <span class="chip-dot" id="statusDot"></span>
+          <span id="versionBadge">HYBRID + RERANK</span>
+          <span class="chip-sep">/</span>
+          <span id="fovText">FOV 0 / 65.5K</span>
+        </div>
+      </header>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="composer-dock" id="composerDock">
+        <div class="composer-shell">
+          <textarea
+            id="queryInput"
+            rows="1"
+            placeholder="输入你的医疗健康问题（Enter 发送，Shift+Enter 换行）"
+          ></textarea>
+          <div class="composer-actions">
+            <button id="clearBtn" type="button" title="清空对话并返回首页">清空</button>
+            <button id="sendBtn" type="button">发送</button>
+          </div>
+        </div>
+
         <div class="examples-row">
           <button type="button" class="example-pill" data-query="怀孕25周昨晚着凉了，早上拉肚子怎么办？">孕期着凉腹泻</button>
           <button type="button" class="example-pill" data-query="饮食上需要注意什么？">多轮追问：饮食注意</button>
           <button type="button" class="example-pill" data-query="Python 中如何使用 asyncio 实现并发请求？">域外拒答测试</button>
         </div>
-        <div class="input-bar">
-          <textarea id="queryInput" placeholder="输入医疗健康问题（Enter 发送，Shift+Enter 换行）"></textarea>
-          <button id="sendBtn" type="button">发送</button>
-          <button id="clearBtn" type="button">清空</button>
-        </div>
       </div>
     </section>
 
-    <aside class="lightbox-panel">
-      <canvas id="mriShaderCanvas"></canvas>
-      <div class="lightbox-hud">
-        <span>TOMOGRAPHIC EVIDENCE // Z-STACK</span>
-        <span class="hud-state" id="hudState">STANDING BY</span>
-      </div>
-      <div class="zstack-stage" id="zstackStage">
-        <div class="zstack-empty">
-          <div class="code-line">WAITING FOR SIGNAL // 0 SLICES</div>
-          <p>发起医疗问答后，召回证据将以 3D 断层胶片呈现于此，支持悬浮引用锚点激光联动。</p>
+    <!-- 右栏：3D 拟物胶片暗盒 + 背光观片台（真实吐出齿孔胶片） -->
+    <aside class="cartridge-zone" id="cartridgeZone">
+      <div class="cartridge-mount">
+        <canvas id="cartridgeCanvas"></canvas>
+        <div class="cartridge-status-row">
+          <span class="cartridge-label">OPTICAL FILM CARTRIDGE // CMED-70</span>
+          <span class="cartridge-state" id="hudState">STANDING BY</span>
         </div>
       </div>
-      <div class="zstack-scrubber" id="zstackScrubber" hidden>
-        <span id="zAxisLabel">Z: 1/1</span>
-        <input id="zRange" type="range" min="0" max="0" value="0" />
+
+      <div class="film-lightbox" id="filmLightbox">
+        <div class="film-placeholder" id="filmPlaceholder">
+          胶片暗盒待命中——提问后将从上方出片口吐出并显影循证胶片
+        </div>
+        <div class="film-tray" id="filmTray"></div>
       </div>
     </aside>
   </main>
+
+  <footer class="disclaimer-foot" id="disclaimerBar">
+    【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗依据。如有身体不适，请及时前往正规医院就诊。
+  </footer>
 
   <svg id="laserOverlay" aria-hidden="true"></svg>
 

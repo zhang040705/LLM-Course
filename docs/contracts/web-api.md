@@ -1,14 +1,14 @@
 # 契约：FastAPI Web 服务接口（`src/app/fastapi_app.py`）
 
 - **关联任务**：`T15`（FastAPI 服务端与交互页面升级）
-- **实现文件**：`src/app/fastapi_app.py`、`src/app/static/index.html`、`src/app/static/styles.css`、`src/app/static/mri_shader.js`、`src/app/static/app.js`
+- **实现文件**：`src/app/fastapi_app.py`、`src/app/static/index.html`、`src/app/static/styles.css`、`src/app/static/film_cartridge_3d.js`、`src/app/static/app.js`
 
 ## 1. HTTP 接口清单
 
 | 路径 | 方法 | 说明 |
 | :--- | :--- | :--- |
-| `/` | `GET` | 返回「全息核磁切片台」单页前端（`src/app/static/index.html`） |
-| `/static/*` | `GET` | 静态资源挂载（CSS、WebGL Shader JS、前端交互 JS、核磁底纹纹理） |
+| `/` | `GET` | 返回「温润光学工作室 · 3D 胶片匣」前端页面（`src/app/static/index.html`） |
+| `/static/*` | `GET` | 静态资源挂载（CSS、Three.js 3D 胶片匣组件、本地 Three.js ES 模块、交互 JS、核磁底纹） |
 | `/docs` | `GET` | FastAPI 自动生成的 OpenAPI Swagger 文档 |
 | `/api/health` | `GET` | 返回服务状态、版本、检索模式、重排开关、`max_context_tokens`、`min_similarity_score` 与医疗免责声明 |
 | `/api/chat` | `POST` | 非流式多轮问答，返回完整结构化 `RAGResponse` JSON（含 `max_score`） |
