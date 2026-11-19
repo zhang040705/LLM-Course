@@ -1,0 +1,50 @@
+# Byte-compiled / Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables & secrets (NEVER commit real keys)
+.env
+.env.local
+.env.*.local
+
+# Large data & vector stores (keep data/samples/ tracked)
+data/raw/
+data/processed/
+data/vectorstore/
+*.parquet
+*.db
+*.sqlite3
+
+# Model weights & checkpoints
+checkpoints/
+models/
+*.bin
+*.safetensors
+*.gguf
+*.pt
+*.pth
+
+# Logs & caches
+logs/
+*.log
+.cache/
+.pytest_cache/
+.gradio/
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

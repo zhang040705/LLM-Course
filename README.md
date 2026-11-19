@@ -1,0 +1,92 @@
+# 中文医疗领域特定 RAG 问答系统（Medical Domain-Specific QA）
+
+LLM-Course 2026 方向 01（NLP 综合作业）项目仓库。  
+基于 **CMedQA** 中文医疗问答数据集，实现支持**长上下文（>32k tokens）**、**多轮对话**、**可解释引用溯源**与**不确定性拒答**的领域 RAG 问答系统，并采用「MVP 快速跑通 → 分阶段量化迭代」的路线持续优化。
+
+---
+
+## 1. 项目文档导航
+
+- 规范与协作入口：[CLAUDE.md](CLAUDE.md)
+- 项目立项与范围：[docs/proposal.md](docs/proposal.md)
+- 系统架构设计：[docs/design.md](docs/design.md)
+- 编号任务清单：[docs/tasks.md](docs/tasks.md)
+- 接口契约目录：[docs/contracts/README.md](docs/contracts/README.md)
+- 架构决策记录：[docs/decisions/README.md](docs/decisions/README.md)
+
+---
+
+## 2. 目录结构
+
+```text
+.
+├── CLAUDE.md                 # Agent 与团队协作规范索引
+├── README.md                 # 环境配置、依赖安装与复现说明
+├── .env.example              # 环境变量模板（复制为 .env 使用）
+├── requirements.txt          # Python 依赖清单
+├── configs/
+│   └── config.yaml           # 模型、Embedding、检索与 RAG 全局配置
+├── docs/                     # 立项、设计、任务、契约与架构决策文档
+├── data/
+│   └── samples/              # 轻量样例数据（raw/processed/vectorstore 不入库）
+├── src/
+│   ├── config.py             # 配置与环境变量加载器
+│   ├── ingestion/            # 数据清洗、切分与元数据构建
+│   ├── retrieval/            # Embedding、向量检索、BM25 与重排
+│   ├── llm/                  # OpenAI 兼容 LLM 接入层（DeepSeek / 本地模型）
+│   ├── rag/                  # RAG 核心编排服务
+│   └── app/                  # Web Demo（MVP: Gradio → V4: FastAPI）
+├── scripts/                  # 数据准备、评测、微调、Demo 启动脚本
+├── tests/                    # 单元测试与冒烟测试
+├── results/                  # 各版本实验评测输出与对比图表
+└── report/                   # 最终实验报告
+```
+
+---
+
+## 3. 环境配置与依赖安装
+
+### 3.1 创建虚拟环境并安装依赖
+建议使用 Python 3.10+（或兼容当前环境的 Python 3.9+）：
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 3.2 配置环境变量
+复制 `.env.example` 为 `.env`，并填入你的 DeepSeek API Key：
+
+```bash
+cp .env.example .env
+# 编辑 .env，填写 DEEPSEEK_API_KEY
+```
+
+### 3.3 验证工程骨架
+```bash
+pytest -q
+```
+
+---
+
+## 4. 全流程运行方式（随任务推进持续更新）
+
+> 当前已完成 **V0 MVP（`T01`–`T07`）**，所有核心脚本与基线评测已就绪：
+
+1. **数据处理与建库**（`T02`–`T03`，已就绪）：
+   ```bash
+   python scripts/prepare_data.py
+   # 常用参数: --kb-size 5000 --reset-index --skip-index
+   ```
+2. **启动 Web Demo**（`T06`，已就绪）：
+   ```bash
+   python scripts/run_demo.py
+   ```
+3. **自动化评测**（`T07`，已就绪）：
+   ```bash
+   python scripts/eval_rag.py --in-domain-limit 50 --ood-limit 30
+   ```
+4. **长上下文压测**（`T09`）：`python scripts/test_long_context.py`
+5. **LoRA 微调**（`T14`）：`python scripts/train_lora.py`

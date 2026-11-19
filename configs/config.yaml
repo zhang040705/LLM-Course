@@ -1,0 +1,59 @@
+# ============================================
+# 中文医疗领域 RAG 问答系统 — 全局配置文件
+# ============================================
+
+project:
+  name: "medical-rag-qa"
+  version: "v0-baseline"
+  seed: 42
+
+data:
+  dataset_name: "cMedQA2"
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  samples_dir: "data/samples"
+  kb_size: 5000                # MVP 知识库最小条目数（>= 5000）
+  eval_size: 300               # 独立领域评测集条数
+  ood_size: 80                 # 拒答/域外测试集条数
+  chunk_size: 400              # 单块最大字符数
+  chunk_overlap: 50            # 分块重叠字符数
+
+embedding:
+  provider: "local"            # local | dashscope
+  local_model: "BAAI/bge-small-zh-v1.5"
+  onnx_model: "Xenova/bge-small-zh-v1.5"
+  onnx_file: "onnx/model_quantized.onnx"
+  device: "auto"               # auto | cpu | mps | cuda
+  batch_size: 64
+  # 云端对比选项（provider=dashscope 时生效）
+  dashscope_model: "text-embedding-v3"
+
+retrieval:
+  vectorstore_dir: "data/vectorstore"
+  collection_name: "cmedqa_kb"
+  mode: "dense"                # dense | hybrid (V2)
+  top_k: 5
+  rerank_enabled: false        # V2 开启重排
+  rerank_top_k: 5
+
+llm:
+  provider: "deepseek"         # deepseek | local
+  model: "deepseek-chat"
+  max_context_tokens: 32768    # >32k 长上下文支持
+  max_output_tokens: 1536
+  temperature: 0.2
+  timeout: 60
+
+rag:
+  max_history_turns: 6
+  query_rewrite_enabled: false # V1 开启多轮 Query 改写
+  min_similarity_score: 0.45   # 低于此阈值触发不确定性拒答
+  disclaimer: "【医疗免责声明】本系统回答仅供健康科普参考，不构成临床诊疗依据。如有身体不适，请及时前往正规医院就诊。"
+
+app:
+  framework: "gradio"          # gradio (MVP) | fastapi (V4)
+  host: "127.0.0.1"
+  port: 7860
+
+eval:
+  results_dir: "results"
